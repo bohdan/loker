@@ -1,0 +1,7 @@
+1. Parse the file, verify POSIX compliance
+2. List:
+  1. Commands that executed
+  2. Files that are read and written (via redirections)
+  3. Environment variables that are read and set
+  4. Paths that are checked
+3. Warn about unquoted variables
