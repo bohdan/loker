@@ -85,6 +85,18 @@ substitution = do
     char '$'
     parameter
 
+-- A word consisting solely of underscores, digits, and alphabetics from the
+-- portable character set. The first character of a name is not a digit. 
+name :: Parsec S u String
+name = do
+    first <- underscore <|> letter
+    rest <- many $ underscore <|> letter <|> digit
+    return $ first:rest
+    where
+    -- portable character set
+    letter = satisfy $ \x -> (x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z')
+    underscore = char '_'
+
 parameter :: Parsec S u WordPart
 parameter = do
     fmap Parameter $ braced <|> unbraced
@@ -100,11 +112,8 @@ parameter = do
         escaped = do char '\\'; fmap Escaped $ char '}'
         bare = fmap Bare $ many1 $ satisfy (/= '}')
 
-    unbraced = fmap (:[]) $ simple_positional <|> name
+    unbraced = fmap (:[]) $ simple_positional <|> fmap Bare name
     simple_positional = fmap (Bare.(:[])) digit
-    name = fmap Bare $ many1 letter --XXX precise name
-        
-    
 
 --- Tokens ---
 tokens :: Parsec S u [Token]
