@@ -75,14 +75,21 @@ escaped = do
 doubleQuoted :: Parsec S u WordPart
 doubleQuoted = do
     dQuote
-    parts <- many1 $ escaped <|> bareWord "$`\\\"" <|> substitution
+    parts <- many1 $ escaped <|> bare_word <|> substitution
     dQuote
     return $ DQuoted parts
     where
     dQuote = char '"'
-    escaped = do
+    escapables = "$`\"\\\n"
+    escaped = try $ do
         char '\\'
-        fmap Escaped $ oneOf "$`\"\\\n"
+        fmap Escaped $ oneOf escapables
+    bare_word = do
+        w <- many1 ordinary_symbol
+        return $ Bare w
+        where
+        ordinary_symbol = noneOf "$`\\\"" <|>
+            do char '\\'; lookAhead (noneOf escapables); return '\\'
 
 word :: String -> Bool -> Parsec S u Word
 word terminators acceptEmpty = do
