@@ -49,6 +49,22 @@ data Token = Word [WordPart]
            | Op String
     deriving Show
 
+data Redirection = Redirection Int RedirectionOp Word
+    deriving Show
+
+data StripHereDoc = Strip | NoStrip
+    deriving Show
+data Clobber = Clobber | NoClobber
+    deriving Show
+data RedirectionOp = RedirectInput
+                   | RedirectOutput Clobber
+                   | AppendOutput
+                   | HereDoc StripHereDoc
+                   | DupInput
+                   | DupOutput
+                   | ReadWrite
+    deriving Show
+
 singleQuoted :: Parsec S u WordPart
 singleQuoted = do
     squote
@@ -206,8 +222,43 @@ parameterSubst = do
 tokens :: Parsec S u [Token]
 tokens = do
     optional whiteSpace
-    sepEndBy (token_word <|> operator) (optional whiteSpace)
-    where token_word = fmap Word (word ("'\"`$\\\n# " ++ opFirstLetters) False)
+    sepEndBy (fmap Word token_word <|> operator) (optional whiteSpace)
+
+token_word = word ("'\"`$\\\n# " ++ opFirstLetters) False
+
+--- Syntax ---
+redirOp :: Parsec S u RedirectionOp
+redirOp = do
+    op <- choice $ map (try.string) ["<<-",">>","<&",">&","<>","<<",">|","<",">"]
+    return $ case op of
+        "<"  -> RedirectInput
+        ">"  -> RedirectOutput NoClobber
+        ">|" -> RedirectOutput Clobber
+        "<<" -> HereDoc NoStrip
+        "<<-"-> HereDoc Strip
+        ">>" -> AppendOutput
+        "<&" -> DupInput
+        ">&" -> DupOutput
+        "<>" -> ReadWrite
+
+redirection :: Parsec S u Redirection
+redirection = do
+    mbFd <- optionMaybe number
+    op <- redirOp
+    w <- token_word
+
+    let fd = case mbFd of
+            Just fd -> fd
+            Nothing -> case op of
+                RedirectOutput _ -> 1
+                AppendOutput     -> 1
+                DupOutput        -> 1
+                RedirectInput    -> 0
+                HereDoc _        -> 0
+                DupInput         -> 0
+                ReadWrite        -> 0
+
+    return $ Redirection fd op w
 
 main = do
     s <- getContents
