@@ -198,9 +198,7 @@ parameterSubst = do
         d <- digit
         return $ Positional $ read [d]
 
-    positional = do
-        n <- many1 digit
-        return $ Positional $ read n
+    positional = fmap Positional number
     
     special = fmap Special $ oneOf "@*#?-$!0"
 
@@ -214,3 +212,9 @@ tokens = do
 main = do
     s <- getContents
     print $ parse tokens "" s
+
+--- Misc ---
+
+number = do
+    n <- many1 digit
+    return $ read n
