@@ -276,7 +276,7 @@ separated p = do
     optional whiteSpace
     sepEndBy p (optional whiteSpace)
 
-command = do 
+simpleCommand = do 
     cmd_prefix <- separated (fmap add_assignment (try assignment) <|> fmap add_redirection redirection)
     cmd_word <- fmap maybeToList $ optionMaybe $ fmap add_word token_word
     cmd_suffix <- separated (try (fmap add_redirection redirection) <|> fmap add_word token_word)
@@ -293,7 +293,7 @@ command = do
 main = do
     s <- getContents
     --print $ parse tokens "" s
-    print $ parse command "" s
+    print $ parse simpleCommand "" s
 
 --- Misc ---
 
