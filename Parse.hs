@@ -1,5 +1,5 @@
 import Data.List
-import Text.Parsec hiding (tokens)
+import Text.Parsec hiding (token,tokens)
 import Data.Maybe
 import Control.Monad
 
@@ -145,9 +145,9 @@ word terminators acceptEmpty = do
 
 --- Operators ---
 
-operator :: Parsec S u Token
-operator = do
-    fmap Op $ choice $ map (try.string) operatorList
+operator :: Parsec S u String
+operator = token $ do
+    choice $ map (try.string) operatorList
 
 operatorList = ["&&","||",";;","<<",">>","<&",">&","<>","<<-",">|","<",">","&",";","|","\n"]
 opFirstLetters = nub $ map head $ operatorList
@@ -174,7 +174,7 @@ substitution = do
 -- A word consisting solely of underscores, digits, and alphabetics from the
 -- portable character set. The first character of a name is not a digit. 
 name :: Parsec S u String
-name = do
+name = token $ do
     first <- underscore <|> letter
     rest <- many $ underscore <|> letter <|> digit
     return $ first:rest
@@ -250,12 +250,26 @@ parameterSubst = do
     special = fmap Special $ oneOf "@*#?-$!0"
 
 --- Tokens ---
+
+token :: Parsec S u a -> Parsec S u a
+token p = do optional whiteSpace; x <- p; optional whiteSpace; return x
+
+separated p = do
+    optional whiteSpace
+    sepEndBy p (optional whiteSpace)
+
+separated1 p = do
+    optional whiteSpace
+    sepEndBy1 p (optional whiteSpace)
+
+{-
 tokens :: Parsec S u [Token]
 tokens = do
     optional whiteSpace
     sepEndBy (fmap Word token_word <|> operator) (optional whiteSpace)
+-}
 
-token_word = word ("'\"`$\\\n# " ++ opFirstLetters) False
+token_word = token $ word ("'\"`$\\\n# " ++ opFirstLetters) False
 
 --- Syntax ---
 redirOp :: Parsec S u RedirectionOp
@@ -296,10 +310,6 @@ assignment = do
     char '='
     value <- token_word
     return $ Assignment var value
-
-separated p = do
-    optional whiteSpace
-    sepEndBy p (optional whiteSpace)
 
 simpleCommand = do 
     cmd_prefix <- separated (fmap add_assignment (try assignment) <|> fmap add_redirection redirection)
