@@ -342,10 +342,25 @@ theReservedWord w = do
     guard $ w == w'
     return w
 
+linebreak = separated $ char '\n'
+newline_list = separated1 $ char '\n'
+
+pipeline = do
+    bang <- do optionMaybe (theReservedWord "!")
+    ps <- pipe_sequence
+    let status = if isJust bang then Inverted else Straight
+    return $ Pipeline status ps
+    where
+    pipe_sequence = do
+        sepBy1 command (do theOperator "|"; linebreak)
+
+command = fmap ComSimple $ simpleCommand
+
 main = do
     s <- getContents
     --print $ parse tokens "" s
-    print $ parse simpleCommand "" s
+    --print $ parse simpleCommand "" s
+    print $ parse pipeline "" s
 
 --- Misc ---
 
