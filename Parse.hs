@@ -356,11 +356,24 @@ pipeline = do
 
 command = fmap ComSimple $ simpleCommand
 
+andOrList = do
+    p <- pipeline
+    op <- optionMaybe $ theOperator "&&" <|> theOperator "||"
+    case op of
+        Nothing -> return $ First p
+        Just op -> do
+            linebreak
+            rest <- andOrList
+            let opCon = case op of
+                 "&&" -> And
+                 "||" -> Or
+            return $ opCon p rest
+
 main = do
     s <- getContents
     --print $ parse tokens "" s
     --print $ parse simpleCommand "" s
-    print $ parse pipeline "" s
+    print $ parse andOrList "" s
 
 --- Misc ---
 
