@@ -1,6 +1,7 @@
 import Data.List
 import Text.Parsec hiding (tokens)
 import Data.Maybe
+import Control.Monad
 
 type S = String
 
@@ -289,6 +290,14 @@ simpleCommand = do
     add_assignment  a (as,rs,ws) = (a:as,rs,ws)
     add_redirection r (as,rs,ws) = (as,r:rs,ws)
     add_word        w (as,rs,ws) = (as,rs,w:ws)
+
+reservedWords = ["!",  "{", "}", "case", "do", "done", "elif", "else", "esac",
+                 "fi", "for", "if", "in", "then", "until", "while"]
+
+reservedWord = do
+    [Bare x] <- token_word
+    guard $ x `elem` reservedWords
+    return $ x
 
 main = do
     s <- getContents
