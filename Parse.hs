@@ -69,8 +69,32 @@ data RedirectionOp = RedirectInput
 data Assignment = Assignment String Word
     deriving Show
 
+data Command = ComSimple SimpleCommand
+             | ComCompound CompoundCommand 
+--           | ComFunction FunctionDefinition
+    deriving Show
 data SimpleCommand = SimpleCommand [Assignment] [Redirection] [Word]
     deriving Show
+data CompoundCommand = BraceGroup CompoundList
+                     | SubShell CompoundList
+                     | For String [Word] CompoundList
+--                   | Case TODO
+                     | If [(CompoundList,CompoundList)] -- 'if' and 'elif'
+                           (Maybe CompoundList) -- optional 'else'
+                     | While CompoundList CompoundList
+                     | Until CompoundList CompoundList
+    deriving Show
+data PipelineStatus = Straight | Inverted
+    deriving Show
+data Pipeline = Pipeline PipelineStatus [Command]
+    deriving Show
+data AndOrList = First Pipeline
+               | And   Pipeline AndOrList
+               | Or    Pipeline AndOrList
+    deriving Show
+data ExecutionMode = Seq | Async
+    deriving Show
+type CompoundList = [(AndOrList,ExecutionMode)]
 
 singleQuoted :: Parsec S u WordPart
 singleQuoted = do
