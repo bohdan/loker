@@ -149,6 +149,11 @@ operator :: Parsec S u String
 operator = token $ do
     choice $ map (try.string) operatorList
 
+theOperator op = try $ do
+    op' <- operator
+    guard $ op' == op
+    return op
+
 operatorList = ["&&","||",";;","<<",">>","<&",">&","<>","<<-",">|","<",">","&",";","|","\n"]
 opFirstLetters = nub $ map head $ operatorList
 
@@ -328,10 +333,14 @@ simpleCommand = do
 reservedWords = ["!",  "{", "}", "case", "do", "done", "elif", "else", "esac",
                  "fi", "for", "if", "in", "then", "until", "while"]
 
-reservedWord = do
+reservedWord = try $ do
     [Bare x] <- token_word
     guard $ x `elem` reservedWords
     return $ x
+theReservedWord w = do
+    w' <- try reservedWord
+    guard $ w == w'
+    return w
 
 main = do
     s <- getContents
