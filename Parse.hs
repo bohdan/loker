@@ -65,6 +65,12 @@ data RedirectionOp = RedirectInput
                    | ReadWrite
     deriving Show
 
+data Assignment = Assignment String Word
+    deriving Show
+
+data SimpleCommand = SimpleCommand [Assignment] [Redirection] [Word]
+    deriving Show
+
 singleQuoted :: Parsec S u WordPart
 singleQuoted = do
     squote
@@ -260,9 +266,34 @@ redirection = do
 
     return $ Redirection fd op w
 
+assignment = do
+    var <- name
+    char '='
+    value <- token_word
+    return $ Assignment var value
+
+separated p = do
+    optional whiteSpace
+    sepEndBy p (optional whiteSpace)
+
+command = do 
+    cmd_prefix <- separated (fmap add_assignment (try assignment) <|> fmap add_redirection redirection)
+    cmd_word <- fmap maybeToList $ optionMaybe $ fmap add_word token_word
+    cmd_suffix <- separated (try (fmap add_redirection redirection) <|> fmap add_word token_word)
+
+    let (as,rs,ws) = foldr ($) ([],[],[]) (cmd_prefix ++ cmd_word ++ cmd_suffix)
+
+    return $ SimpleCommand as rs ws
+
+    where
+    add_assignment  a (as,rs,ws) = (a:as,rs,ws)
+    add_redirection r (as,rs,ws) = (as,r:rs,ws)
+    add_word        w (as,rs,ws) = (as,rs,w:ws)
+
 main = do
     s <- getContents
-    print $ parse tokens "" s
+    --print $ parse tokens "" s
+    print $ parse command "" s
 
 --- Misc ---
 
