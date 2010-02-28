@@ -371,11 +371,26 @@ andOrList = do
                  "||" -> Or
             return $ opCon p rest
 
+andOrListSep = do
+    aol <- andOrList
+    sep <- optionMaybe (theOperator ";" <|> theOperator "&")
+    let mode = case sep of
+            Nothing  -> Seq
+            Just ";" -> Seq
+            Just "&" -> Async
+    return (aol,mode)
+
+compoundList = do
+    aols <- many1 andOrListSep
+    linebreak
+    return aols
+
 main = do
     s <- getContents
     --print $ parse tokens "" s
     --print $ parse simpleCommand "" s
-    print $ parse andOrList "" s
+    --print $ parse andOrList "" s
+    print $ parse compoundList "" s
 
 --- Misc ---
 
