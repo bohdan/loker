@@ -339,8 +339,8 @@ reservedWord = try $ do
     [Bare x] <- token_word
     guard $ x `elem` reservedWords
     return $ x
-theReservedWord w = do
-    w' <- try reservedWord
+theReservedWord w = try $ do
+    w' <- reservedWord
     guard $ w == w'
     return w
 
