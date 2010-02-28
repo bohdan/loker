@@ -323,7 +323,9 @@ simpleCommand = do
 
     let (as,rs,ws) = foldr ($) ([],[],[]) (cmd_prefix ++ cmd_word ++ cmd_suffix)
 
-    return $ SimpleCommand as rs ws
+    case (as,rs,ws) of
+        ([],[],[]) -> parserFail "Empty command"
+        _ -> return $ SimpleCommand as rs ws
 
     where
     add_assignment  a (as,rs,ws) = (a:as,rs,ws)
