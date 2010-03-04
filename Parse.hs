@@ -1,9 +1,7 @@
 import Data.List
-import Text.Parsec hiding (token,tokens)
 import Data.Maybe
 import Control.Monad
-
-type S = String
+import Parsec hiding (token,tokens)
 
 -- A parameter can be denoted by a name, a number, or one of the special
 -- characters listed in Special Parameters.
@@ -96,8 +94,8 @@ data ExecutionMode = Seq | Async
     deriving Show
 type CompoundList = [(AndOrList,ExecutionMode)]
 
-singleQuoted :: Parsec S u WordPart
-singleQuoted = do
+singleQuoted :: Parser WordPart
+singleQuoted = dontSkipLineConts $ do
     squote
     text <- many nonQuote
     squote
@@ -106,20 +104,20 @@ singleQuoted = do
     squote = char '\''
     nonQuote = satisfy (/= '\'')
 
-bareWord :: String -> Parsec S u WordPart
+bareWord :: String -> Parser WordPart
 bareWord terminators = do
     word <- many1 ordinarySymbol
     return $ Bare word
     where
     ordinarySymbol = noneOf terminators
 
-escaped :: Parsec S u WordPart
+escaped :: Parser WordPart
 escaped = do
     char '\\'
     c <- anyChar
     return $ Escaped c
 
-doubleQuoted :: Parsec S u WordPart
+doubleQuoted :: Parser WordPart
 doubleQuoted = do
     dQuote
     parts <- many1 $ escaped <|> bare_word <|> substitution
@@ -138,14 +136,14 @@ doubleQuoted = do
         ordinary_symbol = noneOf "$`\\\"" <|>
             do char '\\'; lookAhead (noneOf escapables); return '\\'
 
-word :: String -> Bool -> Parsec S u Word
+word :: String -> Bool -> Parser Word
 word terminators acceptEmpty = do
     (if acceptEmpty then many else many1) $
         escaped <|> singleQuoted <|> doubleQuoted <|> substitution <|> bareWord terminators
 
 --- Operators ---
 
-operator :: Parsec S u String
+operator :: Parser String
 operator = token $ do
     choice $ map (try.string) operatorList
 
@@ -159,26 +157,26 @@ opFirstLetters = nub $ map head $ operatorList
 
 --- Comments ---
 
-comment :: Parsec S u ()
+comment :: Parser ()
 comment = do
     char '#'
     many $ satisfy (/= '\n')
     return ()
 
-whiteSpace :: Parsec S u ()
+whiteSpace :: Parser ()
 whiteSpace = do many1 $ comment <|> (char ' ' >> return ());
                 return ()
 
 --- Substitutions ---
 -- Parameter expansion, command substitution or arithmetic expansion
-substitution :: Parsec S u WordPart
+substitution :: Parser WordPart
 substitution = do
     char '$'
     fmap ParSubst parameterSubst
 
 -- A word consisting solely of underscores, digits, and alphabetics from the
 -- portable character set. The first character of a name is not a digit. 
-name :: Parsec S u String
+name :: Parser String
 name = token $ do
     first <- underscore <|> letter
     rest <- many $ underscore <|> letter <|> digit
@@ -188,7 +186,7 @@ name = token $ do
     letter = satisfy $ \x -> (x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z')
     underscore = char '_'
 
-parameterSubst :: Parsec S u ParSubstExpr
+parameterSubst :: Parser ParSubstExpr
 parameterSubst = do
     braced <|> unbraced <?> "parameter substitution"
     where
@@ -256,7 +254,7 @@ parameterSubst = do
 
 --- Tokens ---
 
-token :: Parsec S u a -> Parsec S u a
+token :: Parser a -> Parser a
 token p = do optional whiteSpace; x <- p; optional whiteSpace; return x
 
 separated p = do
@@ -268,7 +266,7 @@ separated1 p = do
     sepEndBy1 p (optional whiteSpace)
 
 {-
-tokens :: Parsec S u [Token]
+tokens :: Parser [Token]
 tokens = do
     optional whiteSpace
     sepEndBy (fmap Word token_word <|> operator) (optional whiteSpace)
@@ -277,7 +275,7 @@ tokens = do
 token_word = token $ word ("'\"`$\\\n# " ++ opFirstLetters) False
 
 --- Syntax ---
-redirOp :: Parsec S u RedirectionOp
+redirOp :: Parser RedirectionOp
 redirOp = do
     op <- choice $ map (try.string) ["<<-",">>","<&",">&","<>","<<",">|","<",">"]
     return $ case op of
@@ -291,7 +289,7 @@ redirOp = do
         ">&" -> DupOutput
         "<>" -> ReadWrite
 
-redirection :: Parsec S u Redirection
+redirection :: Parser Redirection
 redirection = do
     mbFd <- optionMaybe number
     op <- redirOp
@@ -390,7 +388,7 @@ main = do
     --print $ parse tokens "" s
     --print $ parse simpleCommand "" s
     --print $ parse andOrList "" s
-    print $ parse compoundList "" s
+    print $ parse (linebreak >> many compoundList) "" s
 
 --- Misc ---
 
