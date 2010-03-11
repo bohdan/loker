@@ -314,7 +314,7 @@ assignment = do
     value <- token_word
     return $ Assignment var value
 
-simpleCommand = do 
+simpleCommand = ifNotReserved $ do
     cmd_prefix <- separated (fmap add_assignment (try assignment) <|> fmap add_redirection redirection)
     cmd_word <- fmap maybeToList $ optionMaybe $ fmap add_word token_word
     cmd_suffix <- separated (try (fmap add_redirection redirection) <|> fmap add_word token_word)
@@ -329,6 +329,12 @@ simpleCommand = do
     add_assignment  a (as,rs,ws) = (a:as,rs,ws)
     add_redirection r (as,rs,ws) = (as,r:rs,ws)
     add_word        w (as,rs,ws) = (as,rs,w:ws)
+
+    ifNotReserved p = try $ do
+        r <- optionMaybe reservedWord
+        case r of
+            Just _ -> parserFail "unexpected reserved word"
+            Nothing -> p
 
 reservedWords = ["!",  "{", "}", "case", "do", "done", "elif", "else", "esac",
                  "fi", "for", "if", "in", "then", "until", "while"]
