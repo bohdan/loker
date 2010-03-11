@@ -360,7 +360,8 @@ pipeline = do
     pipe_sequence = do
         sepBy1 command (do theOperator "|"; linebreak)
 
-command = fmap ComSimple $ simpleCommand
+command = fmap ComCompound compoundCommand
+      <|> fmap ComSimple simpleCommand
 
 andOrList = do
     p <- pipeline
@@ -388,6 +389,10 @@ compoundList = do
     aols <- many1 andOrListSep
     linebreak
     return aols
+
+compoundCommand = braceGroup
+
+braceGroup = fmap BraceGroup $ between (theReservedWord "{") (theReservedWord "}") compoundList
 
 main = do
     s <- getContents
