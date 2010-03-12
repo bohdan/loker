@@ -152,7 +152,7 @@ theOperator op = try $ do
     guard $ op' == op
     return op
 
-operatorList = ["&&","||",";;","<<",">>","<&",">&","<>","<<-",">|","<",">","&",";","|","\n"]
+operatorList = ["(",")","&&","||",";;","<<",">>","<&",">&","<>","<<-",">|","<",">","&",";","|","\n"]
 opFirstLetters = nub $ map head $ operatorList
 
 --- Comments ---
@@ -390,9 +390,11 @@ compoundList = do
     linebreak
     return aols
 
-compoundCommand = braceGroup
+compoundCommand = braceGroup <|> subShell
 
 braceGroup = fmap BraceGroup $ between (theReservedWord "{") (theReservedWord "}") compoundList
+
+subShell = fmap SubShell $ between (theOperator "(") (theOperator ")") compoundList
 
 main = do
     s <- getContents
