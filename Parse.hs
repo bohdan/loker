@@ -73,9 +73,11 @@ data Command = ComSimple SimpleCommand
     deriving Show
 data SimpleCommand = SimpleCommand [Assignment] [Redirection] [Word]
     deriving Show
+data ForList = ForWords [Word] | ForPositional
+    deriving Show
 data CompoundCommand = BraceGroup CompoundList
                      | SubShell CompoundList
-                     | For String [Word] CompoundList
+                     | For String ForList CompoundList
 --                   | Case TODO
                      | If [(CompoundList,CompoundList)] -- 'if' and 'elif'
                            (Maybe CompoundList) -- optional 'else'
@@ -350,6 +352,7 @@ theReservedWord w = try $ do
 
 linebreak = separated $ char '\n'
 newline_list = separated1 $ char '\n'
+sequential_sep = (theOperator ";" >> linebreak) <|> newline_list
 
 pipeline = do
     bang <- do optionMaybe (theReservedWord "!")
@@ -390,11 +393,30 @@ compoundList = do
     linebreak
     return aols
 
-compoundCommand = braceGroup <|> subShell
+compoundCommand = braceGroup <|> subShell <|> forClause
 
 braceGroup = fmap BraceGroup $ between (theReservedWord "{") (theReservedWord "}") compoundList
 
 subShell = fmap SubShell $ between (theOperator "(") (theOperator ")") compoundList
+
+doGroup = between (theReservedWord "do") (theReservedWord "done") compoundList
+
+forClause = do
+    theReservedWord "for"
+    var <- name
+    linebreak
+    words <- optionMaybe wordlist
+    do_group <- doGroup
+    let list = case words of
+         Just ws -> ForWords ws
+         Nothing -> ForPositional
+    return $ For var list do_group
+    where
+    wordlist = do
+        theReservedWord "in"
+        ws <- many token_word
+        sequential_sep
+        return ws
 
 main = do
     s <- getContents
