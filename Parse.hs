@@ -393,7 +393,7 @@ compoundList = do
     linebreak
     return aols
 
-compoundCommand = braceGroup <|> subShell <|> forClause
+compoundCommand = braceGroup <|> subShell <|> forClause <|> ifClause
 
 braceGroup = fmap BraceGroup $ between (theReservedWord "{") (theReservedWord "}") compoundList
 
@@ -417,6 +417,28 @@ forClause = do
         ws <- many token_word
         sequential_sep
         return ws
+
+ifClause = do
+    theReservedWord "if"
+    cond <- compoundList
+    theReservedWord "then"
+    then_part <- compoundList
+    elif_parts <- many elif_part
+    mb_else_part <- optionMaybe else_part
+    theReservedWord "fi"
+    return $ If ((cond,then_part):elif_parts) mb_else_part
+
+    where
+    elif_part = do
+        theReservedWord "elif"
+        cond <- compoundList
+        theReservedWord "then"
+        then_part <- compoundList
+        return (cond, then_part)
+
+    else_part = do
+        theReservedWord "else"
+        compoundList
 
 main = do
     s <- getContents
