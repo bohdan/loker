@@ -381,6 +381,7 @@ andOrList = do
 
 list :: Parser CompoundList
 list = do
+    linebreak
     aol <- andOrList
     mode <- optionMaybe $
         (do theOperator ";"; linebreak; return Seq)   <|>
