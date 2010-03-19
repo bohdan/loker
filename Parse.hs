@@ -403,6 +403,7 @@ compoundCommand = choice $
     , forClause
     , ifClause
     , whileClause
+    , untilClause
     ]
 
 braceGroup = fmap BraceGroup $ between (theReservedWord "{") (theReservedWord "}") compoundList
@@ -433,6 +434,12 @@ whileClause = do
     l <- compoundList
     cmds <- doGroup
     return $ While l cmds
+
+untilClause = do
+    theReservedWord "until"
+    l <- compoundList
+    cmds <- doGroup
+    return $ Until l cmds
 
 ifClause = do
     theReservedWord "if"

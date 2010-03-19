@@ -22,5 +22,5 @@ Syntactical:
   - case conditionals
   + if conditionals
   + while loops
-  - until loops
+  + until loops
   - function definitions
