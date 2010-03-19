@@ -1,0 +1,26 @@
+Features supported
+------------------
+
+Lexical:
+  + comments
+  + single quotes
+  + double quotes
+  + parameter expansions
+  - command substitutions
+  - arithmetic expansions
+  + line continuations
+  - here-docs
+
+Syntactical:
+  + simple commands
+  + pipelines
+  + and/or lists
+  + asynchronous/sequential lists
+  + brace groups
+  + subshells
+  + for loops
+  - case conditionals
+  + if conditionals
+  - while loops
+  - until loops
+  - function definitions
