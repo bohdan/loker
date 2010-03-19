@@ -21,6 +21,6 @@ Syntactical:
   + for loops
   - case conditionals
   + if conditionals
-  - while loops
+  + while loops
   - until loops
   - function definitions

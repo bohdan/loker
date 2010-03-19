@@ -397,7 +397,13 @@ list = do
 
 compoundList = list
 
-compoundCommand = braceGroup <|> subShell <|> forClause <|> ifClause
+compoundCommand = choice $
+    [ braceGroup
+    , subShell
+    , forClause
+    , ifClause
+    , whileClause
+    ]
 
 braceGroup = fmap BraceGroup $ between (theReservedWord "{") (theReservedWord "}") compoundList
 
@@ -421,6 +427,12 @@ forClause = do
         ws <- many token_word
         sequential_sep
         return ws
+
+whileClause = do
+    theReservedWord "while"
+    l <- compoundList
+    cmds <- doGroup
+    return $ While l cmds
 
 ifClause = do
     theReservedWord "if"
