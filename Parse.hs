@@ -379,19 +379,22 @@ andOrList = do
                  "||" -> Or
             return $ opCon p rest
 
-andOrListSep = do
+list :: Parser CompoundList
+list = do
     aol <- andOrList
-    sep <- optionMaybe (theOperator ";" <|> theOperator "&")
-    let mode = case sep of
-            Nothing  -> Seq
-            Just ";" -> Seq
-            Just "&" -> Async
-    return (aol,mode)
+    mode <- optionMaybe $
+        (do theOperator ";"; linebreak; return Seq)   <|>
+        (do theOperator "&"; linebreak; return Async) <|>
+        (do newline_list;               return Seq)
+    -- if there is separator, try to parse list further
+    -- if there is no, finish
+    case mode of
+        Just mode -> do
+                rest <- optionMaybe list
+                return $ (aol,mode) : (concat.maybeToList) rest
+        Nothing -> return [(aol,Seq)]
 
-compoundList = do
-    aols <- many1 andOrListSep
-    linebreak
-    return aols
+compoundList = list
 
 compoundCommand = braceGroup <|> subShell <|> forClause <|> ifClause
 
@@ -445,7 +448,7 @@ main = do
     --print $ parse tokens "" s
     --print $ parse simpleCommand "" s
     --print $ parse andOrList "" s
-    print $ parse (linebreak >> many compoundList) "" s
+    print $ parse (do l <- list; eof; return l) "" s
 
 --- Misc ---
 
