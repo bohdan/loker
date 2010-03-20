@@ -9,6 +9,6 @@ for f in tests/*.golden; do
     [[ $golden == 1 ]] && {
       echo "Rewriting the golden file: $f"
       parse < $test_input > $f
-    }
+    } || echo FAIL
   }
 done
