@@ -79,7 +79,7 @@ data ForList = ForWords [Word] | ForPositional
 data CompoundCommand = BraceGroup CompoundList
                      | SubShell CompoundList
                      | For Name ForList CompoundList
---                   | Case TODO
+                     | Case Word [([Word],CompoundList)]
                      | If [(CompoundList,CompoundList)] -- 'if' and 'elif'
                            (Maybe CompoundList) -- optional 'else'
                      | While CompoundList CompoundList
@@ -408,6 +408,7 @@ compoundCommand = choice $
     , ifClause
     , whileClause
     , untilClause
+    , caseClause
     ]
 
 braceGroup = fmap BraceGroup $ between (theReservedWord "{") (theReservedWord "}") compoundList
@@ -466,6 +467,50 @@ ifClause = do
     else_part = do
         theReservedWord "else"
         compoundList
+
+caseClause = do
+    theReservedWord "case"
+    w <- token_word
+    linebreak
+    theReservedWord "in"
+    linebreak
+    cl <- case_list
+
+    return $ Case w cl
+    
+    where
+    -- case_item:
+    --   returns Left () if it parsed "esac",
+    --   returns Right (item, True) if it has parsed item with DSEMI
+    --   returns Right (item, False) if it has parsed item without DSEMI
+    pattern :: Parser [Word]
+    pattern = sepBy1 token_word (char '|')
+
+    case_item :: Parser (Either () (([Word],CompoundList), Bool))
+    case_item = do
+        openParen <- optionMaybe (theOperator "(")
+        let esac = case openParen of
+              -- if there was opening paren, don't recognise esac as reserved word
+              Nothing -> do theReservedWord "esac"; return $ Left ()
+              Just _ -> parserFail ""
+
+            item = do
+                pat <- pattern
+                theOperator ")"
+                linebreak
+                cl <- optionMaybe compoundList
+                dsemi <- optionMaybe (theOperator ";;")
+                linebreak
+                return $ Right ((pat,concat $ maybeToList cl),isJust dsemi)
+
+        esac <|> item
+
+    case_list = do
+        ci <- case_item
+        case ci of
+            Left _ -> return []
+            Right (pat,True) -> fmap (pat:) case_list
+            Right (pat,False) -> do theReservedWord "esac"; return [pat]
 
 main = do
     s <- getContents
