@@ -6,7 +6,7 @@ Lexical:
   + single quotes
   + double quotes
   + parameter expansions
-  - command substitutions
+  + command substitutions
   - arithmetic expansions
   + line continuations
   - here-docs

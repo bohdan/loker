@@ -38,7 +38,7 @@ data WordPart = Bare String
                | SQuoted String
                | DQuoted [WordPart]
                | Escaped Char
-               | CommandSubst [WordPart]
+               | CommandSubst CompoundList
                | ParSubst ParSubstExpr
                | Arith [WordPart]
     deriving Show
@@ -174,7 +174,7 @@ whiteSpace = do many1 $ comment <|> (char ' ' >> return ());
 substitution :: Parser WordPart
 substitution = do
     char '$'
-    fmap ParSubst parameterSubst
+    fmap ParSubst parameterSubst <|> fmap CommandSubst commandSubst
 
 -- A word consisting solely of underscores, digits, and alphabetics from the
 -- portable character set. The first character of a name is not a digit. 
@@ -253,6 +253,9 @@ parameterSubst = do
     positional = fmap Positional number
     
     special = fmap Special $ oneOf "@*#?-$!0"
+
+commandSubst :: Parser CompoundList
+commandSubst = between (char '(') (char ')') compoundList
 
 --- Tokens ---
 
