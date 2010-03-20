@@ -19,7 +19,7 @@ Syntactical:
   + brace groups
   + subshells
   + for loops
-  - case conditionals
+  + case conditionals
   + if conditionals
   + while loops
   + until loops
