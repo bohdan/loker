@@ -167,7 +167,7 @@ comment = do
     return ()
 
 whiteSpace :: Parser ()
-whiteSpace = do many1 $ comment <|> (char ' ' >> return ());
+whiteSpace = do many1 $ comment <|> (oneOf " \t" >> return ());
                 return ()
 
 --- Substitutions ---
