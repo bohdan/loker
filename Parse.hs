@@ -10,7 +10,8 @@ import Parsec hiding (token,tokens)
 --
 -- A positional parameter is a parameter denoted by the decimal value
 -- represented by one or more digits, other than the single digit 0.
-data Parameter = Var String
+type Name = String
+data Parameter = Var Name
                | Positional Int
                | Special Char
     deriving Show
@@ -64,7 +65,7 @@ data RedirectionOp = RedirectInput
                    | ReadWrite
     deriving Show
 
-data Assignment = Assignment String Word
+data Assignment = Assignment Name Word
     deriving Show
 
 data Command = ComSimple SimpleCommand
@@ -77,7 +78,7 @@ data ForList = ForWords [Word] | ForPositional
     deriving Show
 data CompoundCommand = BraceGroup CompoundList
                      | SubShell CompoundList
-                     | For String ForList CompoundList
+                     | For Name ForList CompoundList
 --                   | Case TODO
                      | If [(CompoundList,CompoundList)] -- 'if' and 'elif'
                            (Maybe CompoundList) -- optional 'else'
@@ -178,7 +179,7 @@ substitution = do
 
 -- A word consisting solely of underscores, digits, and alphabetics from the
 -- portable character set. The first character of a name is not a digit. 
-name :: Parser String
+name :: Parser Name
 name = token $ do
     first <- underscore <|> letter
     rest <- many $ underscore <|> letter <|> digit
