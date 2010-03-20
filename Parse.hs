@@ -70,7 +70,10 @@ data Assignment = Assignment Name Word
 
 data Command = ComSimple SimpleCommand
              | ComCompound CompoundCommand 
---           | ComFunction FunctionDefinition
+             | ComFunction FunctionDefinition
+    deriving Show
+data FunctionDefinition =
+	FunctionDefinition Name CompoundCommand [Redirection]
     deriving Show
 data SimpleCommand = SimpleCommand [Assignment] [Redirection] [Word]
     deriving Show
@@ -320,6 +323,13 @@ assignment = do
     value <- token_word
     return $ Assignment var value
 
+ifNotReserved :: Parser a -> Parser a
+ifNotReserved p = try $ do
+    r <- optionMaybe reservedWord
+    case r of
+	Just _ -> parserFail "unexpected reserved word"
+	Nothing -> p
+
 simpleCommand = ifNotReserved $ do
     cmd_prefix <- separated (fmap add_assignment (try assignment) <|> fmap add_redirection redirection)
     cmd_word <- fmap maybeToList $ optionMaybe $ fmap add_word token_word
@@ -335,12 +345,6 @@ simpleCommand = ifNotReserved $ do
     add_assignment  a (as,rs,ws) = (a:as,rs,ws)
     add_redirection r (as,rs,ws) = (as,r:rs,ws)
     add_word        w (as,rs,ws) = (as,rs,w:ws)
-
-    ifNotReserved p = try $ do
-        r <- optionMaybe reservedWord
-        case r of
-            Just _ -> parserFail "unexpected reserved word"
-            Nothing -> p
 
 reservedWords = ["!",  "{", "}", "case", "do", "done", "elif", "else", "esac",
                  "fi", "for", "if", "in", "then", "until", "while"]
@@ -367,8 +371,19 @@ pipeline = do
     pipe_sequence = do
         sepBy1 command (do theOperator "|"; linebreak)
 
-command = fmap ComCompound compoundCommand
+functionDefinition :: Parser FunctionDefinition
+functionDefinition = ifNotReserved $ do
+    fname <- name
+    string "()"
+    linebreak
+    body <- compoundCommand
+    redirect <- many redirection
+    return $ FunctionDefinition fname body redirect
+
+command = try $ fmap ComFunction functionDefinition
+      <|> fmap ComCompound compoundCommand
       <|> fmap ComSimple simpleCommand
+      
 
 andOrList = do
     p <- pipeline
@@ -517,6 +532,7 @@ main = do
     --print $ parse tokens "" s
     --print $ parse simpleCommand "" s
     --print $ parse andOrList "" s
+    --print $ parse functionDefinition "" s
     print $ parse (do l <- list; eof; return l) "" s
 
 --- Misc ---
