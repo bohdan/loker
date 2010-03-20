@@ -1,0 +1,1 @@
+Right [(First (Pipeline Straight [ComFunction (FunctionDefinition "foo" (BraceGroup [(First (Pipeline Straight [ComSimple (SimpleCommand [] [] [[Bare ":"]])]),Seq)]) [])]),Seq)]
